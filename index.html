@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Grid Puzzle – Deduction & Answer Submission</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 10px;
+      background-image: url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e');
+      background-size: cover;
+      background-attachment: fixed;
+      background-repeat: no-repeat;
+      background-position: center;
+      color: #333;
+    }
+    .container {
+      background-color: rgba(255, 255, 255, 0.95);
+      padding: 20px;
+      border-radius: 10px;
+      max-width: 1000px;
+      margin-left: 100px;
+    }
+    table {
+      border-collapse: collapse;
+      margin-bottom: 20px;
+      width: 70%;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: center;
+      width: 100px;
+      height: 40px;
+    }
+    th {
+      background-color: #f0f0f0;
+    }
+    select {
+      width: 100%;
+    }
+    .confirmed { background-color: #c8e6c9; }
+    .eliminated { background-color: #ffcdd2; }
+    .uncertain { background-color: #fff9c4; }
+    .correct { background-color: #c8e6c9; }
+    .incorrect { background-color: #ffcdd2; }
+    h2, h3 { margin-top: 40px; }
+    ul.clues { margin-bottom: 20px; }
+    details summary {
+      font-weight: bold;
+      cursor: pointer;
+      margin: 10px 0;
+    }
+
+#floating-clues {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  width: 300px;
+  background-color: rgba(255, 255, 255, 0.95);
+  border: 1px solid #ccc;
+  padding: 15px;
+  border-radius: 8px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+  z-index: 1000;
+font-size: 11px;
+}
+
+  </style>
+</head>
+<body>
+<div class="container">
+  <h2>🧩 Grid Puzzle – Who's Going Where?</h2>
+  <p>Use the clues below to mark the deduction grids. Then select your final answers and check them.</p>
+
+  <h3>🧠 Clues</h3>
+  <ul class="clues">
+    <li>The person staying in a villa is not going to Greece.</li>
+    <li>Jamie is not taking hiking boots.</li>
+    <li>The person going to Portugal is staying in an apartment.</li>
+    <li>Morgan is going to Spain.</li>
+    <li>The person with the guidebook is staying in a hostel.</li>
+    <li>Taylor is not going to France or Italy.</li>
+    <li>The person staying in a tent is taking hiking boots.</li>
+    <li>Casey is not staying in a hotel.</li>
+    <li>Alex is taking sunglasses.</li>
+    <li>The person going to Italy is staying in a hostel.</li>
+  </ul>
+<div id="floating-clues">
+  <h4>🧠 Clues</h4>
+  <ul>
+    <li>The person staying in a villa is not going to Greece.</li>
+    <li>Jamie is not taking hiking boots.</li>
+    <li>The person going to Portugal is staying in an apartment.</li>
+    <li>Morgan is going to Spain.</li>
+    <li>The person with the guidebook is staying in a hostel.</li>
+    <li>Taylor is not going to France or Italy.</li>
+    <li>The person staying in a tent is taking hiking boots.</li>
+    <li>Casey is not staying in a hotel.</li>
+    <li>Alex is taking sunglasses.</li>
+    <li>The person going to Italy is staying in a hostel.</li>
+  </ul>
+</div>
+
+  <!-- Deduction Grids in collapsible sections -->
+  <details open>
+    <summary>🔍 Deduction Grid: Person vs Country</summary>
+    <table id="grid-country">
+      <thead>
+        <tr><th>Person</th><th>France</th><th>Italy</th><th>Spain</th><th>Greece</th><th>Portugal</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </details>
+
+  <details>
+    <summary>🔍 Deduction Grid: Person vs Accommodation</summary>
+    <table id="grid-accommodation">
+      <thead>
+        <tr><th>Person</th><th>Hotel</th><th>Hostel</th><th>Villa</th><th>Tent</th><th>Apartment</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </details>
+
+  <details>
+    <summary>🔍 Deduction Grid: Person vs Item</summary>
+    <table id="grid-item">
+      <thead>
+        <tr><th>Person</th><th>Sunglasses</th><th>Guidebook</th><th>Sunscreen</th><th>Hiking Boots</th><th>Beach Towel</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </details>
+
+  <!-- Answer Submission -->
+  <h3>✅ Final Answer Submission</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Person</th>
+        <th>Country</th>
+        <th>Accommodation</th>
+        <th>Item</th>
+      </tr>
+    </thead>
+    <tbody id="answer-grid"></tbody>
+  </table>
+
+  <button onclick="checkAnswers()">Check Answers</button>
+</div>
+
+<script>
+  const people = ["Alex", "Jamie", "Morgan", "Taylor", "Casey"];
+  const countries = ["France", "Italy", "Spain", "Greece", "Portugal"];
+  const accommodations = ["Hotel", "Hostel", "Villa", "Tent", "Apartment"];
+  const items = ["Sunglasses", "Guidebook", "Sunscreen", "Hiking Boots", "Beach Towel"];
+
+  const correctAnswers = {
+    "Alex": ["France", "Hotel", "Sunglasses"],
+    "Jamie": ["Italy", "Hostel", "Guidebook"],
+    "Morgan": ["Spain", "Villa", "Sunscreen"],
+    "Taylor": ["Greece", "Tent", "Hiking Boots"],
+    "Casey": ["Portugal", "Apartment", "Beach Towel"]
+  };
+
+  function createDeductionGrid(tableId, headers) {
+    const table = document.getElementById(tableId).querySelector("tbody");
+    people.forEach(person => {
+      const row = document.createElement("tr");
+      const nameCell = document.createElement("td");
+      nameCell.textContent = person;
+      row.appendChild(nameCell);
+
+      headers.forEach(header => {
+        const cell = document.createElement("td");
+        cell.dataset.state = "blank";
+        cell.onclick = () => {
+          switch (cell.dataset.state) {
+            case "blank":
+              cell.dataset.state = "confirmed";
+              cell.className = "confirmed";
+              cell.textContent = "✅";
+              break;
+            case "confirmed":
+              cell.dataset.state = "eliminated";
+              cell.className = "eliminated";
+              cell.textContent = "❌";
+              break;
+            case "eliminated":
+              cell.dataset.state = "uncertain";
+              cell.className = "uncertain";
+              cell.textContent = "❓";
+              break;
+            default:
+              cell.dataset.state = "blank";
+              cell.className = "";
+              cell.textContent = "";
+          }
+        };
+        row.appendChild(cell);
+      });
+
+      table.appendChild(row);
+    });
+  }
+
+  function createAnswerGrid() {
+    const gridBody = document.getElementById("answer-grid");
+    people.forEach(person => {
+      const row = document.createElement("tr");
+      const nameCell = document.createElement("td");
+      nameCell.textContent = person;
+      row.appendChild(nameCell);
+
+      [countries, accommodations, items].forEach(category => {
+        const cell = document.createElement("td");
+        const select = document.createElement("select");
+        category.forEach(option => {
+          const opt = document.createElement("option");
+          opt.value = option;
+          opt.textContent = option;
+          select.appendChild(opt);
+        });
+        cell.appendChild(select);
+        row.appendChild(cell);
+      });
+
+      gridBody.appendChild(row);
+    });
+  }
+
+  function checkAnswers() {
+    const rows = document.getElementById("answer-grid").querySelectorAll("tr");
+    rows.forEach(row => {
+      const person = row.cells[0].textContent;
+      const selected = [
+        row.cells[1].querySelector("select").value,
+        row.cells[2].querySelector("select").value,
+        row.cells[3].querySelector("select").value
+      ];
+      selected.forEach((value, index) => {
+        const cell = row.cells[index + 1];
+        if (value === correctAnswers[person][index]) {
+          cell.className = "correct";
+        } else {
+          cell.className = "incorrect";
+        }
+      });
+    });
+  }
+
+  createDeductionGrid("grid-country", countries);
+  createDeductionGrid("grid-accommodation", accommodations);
+  createDeductionGrid("grid-item", items);
+  createAnswerGrid();
+</script>
+
+</body>
+</html>
